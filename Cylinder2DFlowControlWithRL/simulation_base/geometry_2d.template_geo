@@ -1,3 +1,4 @@
+// Define parameters. All Non-Dimensional (ND). These can then be quickly modified within the code.
 DefineConstant[
 jets_toggle = {1, Name "Toggle Jets --> 0 : No jets, 1: Yes jets"}
 height_cylinder = {1, Name "Cylinder Height (ND)"}

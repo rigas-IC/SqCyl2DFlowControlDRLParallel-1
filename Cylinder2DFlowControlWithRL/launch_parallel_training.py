@@ -37,7 +37,7 @@ for crrt_simu in range(number_servers):
         timing_print=(crrt_simu == 0)     # Only print time info for env_0
     ))
 
-network = [dict(type='retrieve', tensors = ['obs','prev_obs_1']), dict(type='dense', size=512), dict(type='dense', size=512)]
+network = [dict(type='retrieve', tensors = ['obs','prev_obs_1','prev_obs_2','prev_obs_3']), dict(type='dense', size=512), dict(type='dense', size=512)]
 
 agent = Agent.create(
     # Agent + Environment
@@ -48,17 +48,17 @@ agent = Agent.create(
     # Network
     network=network,  # Policy NN specification
     # Optimization
-    batch_size=20,  # Number of episodes per update batch #20 default
-    learning_rate=1e-3,  # Optimizer learning rate
+    batch_size=number_servers,  # Number of episodes per update batch #20 default
+    learning_rate=1e-4,  # Optimizer learning rate
     subsampling_fraction=0.2,  # Fraction of batch timesteps to subsample
-    optimization_steps=25,
+    multi_step=25,
     # Reward estimation
     likelihood_ratio_clipping=0.2, # The epsilon of the ppo CLI objective
-    estimate_terminal=True,  # Whether to estimate the value of terminal states
+    predict_terminal_values=True,  # Whether to estimate the value of terminal states
     # TODO: gae_lambda=0.97 doesn't currently exist
     # Critic
-    critic_network=network,  # Critic NN specification
-    critic_optimizer=dict(
+    baseline=network,  # Critic NN specification
+    baseline_optimizer=dict(
         type='multi_step', num_steps=5,
         optimizer=dict(type='adam', learning_rate=1e-3)
     ),
@@ -67,6 +67,7 @@ agent = Agent.create(
     # TensorFlow etc
     parallel_interactions=number_servers,  # Maximum number of parallel interactions to support
     saver=dict(directory=os.path.join(os.getcwd(), 'saver_data')),  # TensorFlow saver configuration for periodic implicit saving
+    summarizer=dict(directory=os.path.join(os.getcwd(), 'saver_data','summary'), summaries=['graph', 'entropy', 'kl-divergence', 'loss', 'reward'])
 )
 
 runner = Runner(
@@ -78,7 +79,7 @@ runner = Runner(
 )
 
 runner.run(
-    num_episodes=600,
+    num_episodes=1200,
     sync_episodes=True,  # Whether to synchronize parallel environment execution on episode-level
 )
 
@@ -91,7 +92,18 @@ print("Learning finished. Total episodes: {ep}. Average reward of last 100 episo
 name = "returns_tf.csv"
 if (not os.path.exists("saved_models")):
     os.mkdir("saved_models")
-if (not os.path.exists("saved_models/" + name)):
+
+# If continuing previous training - append returns
+if (os.path.exists("saved_models/" + name)):
+    prev_eps = np.genfromtxt("saved_models/" + name, delimiter=';',skip_header=1)
+    offset = int(prev_eps[-1,0])
+    print(offset)
+    with open("saved_models/" + name, "a") as csv_file:
+        spam_writer = csv.writer(csv_file, delimiter=";", lineterminator="\n")
+        for ep in range(len(runner.episode_rewards)):
+            spam_writer.writerow([offset+ep+1, runner.episode_rewards[ep]])
+# If strating training from zero - write returns
+elif (not os.path.exists("saved_models/" + name)):
     with open("saved_models/" + name, "w") as csv_file:
         spam_writer = csv.writer(csv_file, delimiter=";", lineterminator="\n")
         spam_writer.writerow(["Episode", "Return"])
@@ -99,7 +111,8 @@ if (not os.path.exists("saved_models/" + name)):
             spam_writer.writerow([ep+1, runner.episode_rewards[ep]])
 
 runner.close()
-agent.save()
+saver_restore = os.getcwd() + "/saver_data/"
+agent.save(directory = saver_restore)
 agent.close()
 
 for environment in environments:

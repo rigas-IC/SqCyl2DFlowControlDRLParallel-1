@@ -34,13 +34,16 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
 
     simulation_duration = 50.0 #duree en secondes de la simulation #50.0 default
     dt = 0.004
+    single_input = False
+    single_output = False
+    include_actions = False
 
     root = 'mesh/turek_2d'  # Root of geometry file path
     if(not os.path.exists('mesh')):
         os.mkdir('mesh')
 
     geometry_params = {'output': '.'.join([root, 'geo']),  # mesh/turek_2d.geo // relative output path of geometry file according to geo params
-                    'template': '../geometry_2d.template_geo',  # relative path of geometry file template
+                    'template': 'geometry_2d.template_geo',  # relative path of geometry file template
                     'clscale': 1,  # mesh size scaling ratio (all mesh characteristic lenghts of geometry file scaled by this factor)
                     'remesh': remesh,  # remesh toggle (from resume_env args)
                     'jets_toggle': 1,  # toggle Jets --> 0 : No jets, 1: Yes jets
@@ -67,17 +70,20 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
     solver_params = {'dt': dt}
 
     # Define probes positions
-    probe_distribution = {'distribution_type': 'rabault241',
+    probe_distribution = {'distribution_type': 'base',
                           'probes_at_jets': False,  # Whether to use probes at jets or not (for distributions other than 'rabault151'
-                          'n_base': 8}  # Number of probes at cylinder base if 'base' distribution is used
+                          'n_base': 64}  # Number of probes at cylinder base if 'base' distribution is used
 
     list_position_probes = probe_positions(probe_distribution, geometry_params)
 
     output_params = {'locations': list_position_probes,  # List of (x,y) np arrays with probe positions
-                     'probe_type': 'pressure'  # Set quantity measured by probes (pressure/velocity)
+                     'probe_type': 'pressure',  # Set quantity measured by probes (pressure/velocity)
+                     'single_input': False, # whether to feed as input probe values or difference between average top/bottom pressures
+                     'single_output': single_output, # whether policy network outputs one or two outputs
+                     'include_actions': include_actions
                      }
 
-    optimization_params = {"num_steps_in_pressure_history": 2,  # Number of steps that constitute an environment state (state shape = this * len(locations))
+    optimization_params = {"num_steps_in_pressure_history": 4,  # Number of steps that constitute an environment state (state shape = this * len(locations))
                         "min_value_jet_MFR": -0.1,  # Set min and max Q* for weak actuation
                         "max_value_jet_MFR": 0.1,
                         "smooth_control": 0.1,  # parameter alpha to smooth out control
@@ -99,6 +105,9 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
 
     reward_function = 'drag_plain_lift'
 
+    # Ensure that SI is True only if probes on body base, and record pressure
+    output_params['single_input'] = (single_input and probe_distribution['distribution_type'] == 'base' and output_params['probe_type'] == 'pressure')
+
     verbose = 0  # For detailed output (see Env2DCylinder)
 
     number_steps_execution = int((simulation_duration/dt)/nb_actuations)  # Duration in timesteps of action interval (Number of numerical timesteps over which NN action is kept constant, control being interpolated)
@@ -111,7 +120,7 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
 
     # If so, set the value of n-iter (no. iterations to calculate converged initial state)
     if(remesh):
-        n_iter = int(200.0 / dt)
+        n_iter = int(200.0 / dt) # default: 200
         if (os.path.exists('mesh')):
             shutil.rmtree('mesh')  # If previous mesh directory exists, we delete it
         os.mkdir('mesh')  # Create new empty mesh directory

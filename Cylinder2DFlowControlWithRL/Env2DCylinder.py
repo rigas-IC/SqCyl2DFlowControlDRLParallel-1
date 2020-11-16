@@ -169,8 +169,11 @@ class Env2DCylinder(Environment):
         self.history_parameters["drag"] = RingBuffer(self.size_history)
         self.history_parameters["lift"] = RingBuffer(self.size_history)
         self.history_parameters["recirc_area"] = RingBuffer(self.size_history)
-
+        
         self.history_observations = deque(maxlen = (self.optimization_params["num_steps_in_pressure_history"] -1))
+
+        if self.output_params["include_actions"]:
+            self.history_actions = deque(maxlen = (self.optimization_params["num_steps_in_pressure_history"] -1))
 
         # ------------------------------------------------------------------------
         # Remesh if necessary
@@ -344,6 +347,18 @@ class Env2DCylinder(Environment):
         # if necessary, fill the probes buffer
         if self.resetted_number_probes:
             print("Need to fill again the buffer; modified number of probes")
+
+            # Initialize observation/action history buffer if history observation history is included in state
+            for n_hist in range(self.optimization_params["num_steps_in_pressure_history"]-1):
+                self.history_observations.appendleft(np.zeros(shape=len(self.output_params["locations"])))
+                
+                if self.output_params["include_actions"]:
+                    if (self.output_params['single_output'] == True):
+                        shape = (1,)
+                    else:
+                        shape = (2,)
+
+                    self.history_actions.appendleft(np.zeros(shape=shape))
 
             # TODO: Execute runs for 1 action step, so we would be running for (T/Nb)*size_history. While it should be just for size_history.  In practice, remesh if probes change
             for _ in range(self.size_history):
@@ -706,8 +721,12 @@ class Env2DCylinder(Environment):
                     spam_writer.writerow([self.last_episode_number, avg_drag, avg_lift, avg_area])
 
             # Also write in Cylinder2DFlowControlWithRL folder (useful to have data of all episodes together in parallel runs)
-            if(not os.path.exists("../episode_averages")):
-                os.mkdir("../episode_averages")
+            try:
+                if(not os.path.exists("../episode_averages")):
+                    os.mkdir("../episode_averages")
+            except OSError as err:
+                print(err)
+
             if(not os.path.exists("../episode_averages/"+name)):
                 with open("../episode_averages/"+name, "w") as csv_file:
                     spam_writer=csv.writer(csv_file, delimiter=";", lineterminator="\n")
@@ -788,15 +807,47 @@ class Env2DCylinder(Environment):
 
         self.start_class()
 
-        next_state = dict(obs = np.transpose(np.array(self.probes_values)))
+        # If observations is based on difference of average top and bottom pressures
+        if (self.output_params['single_input'] == True):
+            probe_loc_mid = int(len(self.output_params["locations"])/2)
+            press_asym = np.mean(np.array(self.probes_values)[:probe_loc_mid]) - np.mean(np.array(self.probes_values)[-probe_loc_mid:]) 
+            next_state = dict(obs = np.array(press_asym.reshape(1,)))
+            print('initialize single_input case')
+            # Initialize observation history buffer if history observation history is included in state
+            for n_hist in range(self.optimization_params["num_steps_in_pressure_history"]-1):
+                self.history_observations.appendleft(np.transpose(np.array(self.probes_values)))
 
-        # Initialize observation history buffer if history observation history is included in state
-        for n_hist in range(self.optimization_params["num_steps_in_pressure_history"]-1):
-            self.history_observations.append(np.transpose(np.array(self.probes_values)))
-            
-            key = "prev_obs_" + str(n_hist + 1)
-            next_state.update({key : self.history_observations[n_hist]})
+                key = "prev_obs_" + str(n_hist + 1)
+                press_asym = np.mean(self.history_observations[n_hist][:probe_loc_mid]) - np.mean(self.history_observations[n_hist][-probe_loc_mid:])
+                next_state.update({key : np.array(press_asym.reshape(1,))})
         
+        # If observations is based on raw pressure probes    
+        else:
+            next_state = dict(obs = np.transpose(np.array(self.probes_values)))
+
+            # Initialize observation history buffer if history observation history is included in state
+            for n_hist in range(self.optimization_params["num_steps_in_pressure_history"]-1):
+                self.history_observations.appendleft(np.transpose(np.array(self.probes_values)))
+                
+                key = "prev_obs_" + str(n_hist + 1)
+                next_state.update({key : self.history_observations[n_hist]})
+
+        # Initialize action history buffer if action history is included in state
+        if self.output_params["include_actions"]:
+            if (self.output_params['single_output'] == True):
+                shape = (1,)
+            else:
+                shape = (2,)
+            
+            next_state.update({'act' : np.zeros(shape=shape)})
+
+            for n_hist in range(self.optimization_params["num_steps_in_pressure_history"]-1):
+                self.history_actions.appendleft(np.zeros(shape=shape))
+
+                key = "prev_act_" + str(n_hist + 1)
+                next_state.update({key : self.history_actions[n_hist]})
+
+            
         if self.verbose > 0:
             print(next_state["obs"])
 
@@ -824,6 +875,8 @@ class Env2DCylinder(Environment):
 
             nbr_jets = 2
             action = np.zeros((nbr_jets, ))
+        elif (self.output_params['single_output'] is True):
+            action = np.concatenate([action,-action])
 
         if self.verbose > 2:
             print(action)
@@ -832,7 +885,7 @@ class Env2DCylinder(Environment):
         self.action = action
 
         # Append last observation to pressure history buffer
-        self.history_observations.append(np.transpose(np.array(self.probes_values)))
+        self.history_observations.appendleft(np.transpose(np.array(self.probes_values)))
 
         # Run for one action step (several -number_steps_execution- numerical timesteps keeping action=const but changing control)
         for crrt_control_nbr in range(self.number_steps_execution):
@@ -841,14 +894,13 @@ class Env2DCylinder(Environment):
             if "smooth_control" in self.optimization_params:
                 # Original approach used in the JFM paper
                 # self.Qs += self.optimization_params["smooth_control"] * (np.array(action) - self.Qs)
-
                 # Linear interpolation in the control
                 self.Qs = np.array(self.previous_action) + (np.array(self.action) - np.array(self.previous_action)) * ((crrt_control_nbr + 1) / self.number_steps_execution)
             else:
                 self.Qs = np.transpose(np.array(action))
 
             # Impose a zero net Qs
-            if "zero_net_Qs" in self.optimization_params:
+            if ("zero_net_Qs" in self.optimization_params) and (self.output_params['single_output'] is False):
                 if self.optimization_params["zero_net_Qs"]:
                     self.Qs = self.Qs - np.mean(self.Qs)
 
@@ -874,13 +926,39 @@ class Env2DCylinder(Environment):
             self.accumulated_drag += self.drag
             self.accumulated_lift += self.lift
 
-        # TODO: the next_state may incorporate more information: maybe some time information?
-        next_state = dict(obs = np.transpose(np.array(self.probes_values)))
+        # If observations is based on difference of average top and bottom pressures
+        if (self.output_params['single_input'] == True):
+            probe_loc_mid = int(len(self.output_params["locations"])/2)
+            press_asym = np.mean(np.array(self.probes_values)[:probe_loc_mid]) - np.mean(np.array(self.probes_values)[-probe_loc_mid:]) 
+            next_state = dict(obs = np.array(press_asym.reshape(1,)))
         
-        # Update past observations if previous history is included in state
-        for n_hist in range(self.optimization_params["num_steps_in_pressure_history"]-1):
-            key = "prev_obs_" + str(n_hist + 1)
-            next_state.update({key : self.history_observations[n_hist]})
+            # Update past observations if previous history is included in state
+            for n_hist in range(self.optimization_params["num_steps_in_pressure_history"]-1):
+                key = "prev_obs_" + str(n_hist + 1)
+
+                press_asym = np.mean(self.history_observations[n_hist][:probe_loc_mid]) - np.mean(self.history_observations[n_hist][-probe_loc_mid:])
+                next_state.update({key : np.array(press_asym.reshape(1,))})
+        
+        # If observations is based on raw pressure probes    
+        else:
+            next_state = dict(obs = np.transpose(np.array(self.probes_values)))
+            
+            # Update past observations if previous history is included in state
+            for n_hist in range(self.optimization_params["num_steps_in_pressure_history"]-1):
+                key = "prev_obs_" + str(n_hist + 1)
+                next_state.update({key : self.history_observations[n_hist]})
+
+        # Update action history buffer if action history is included in state
+        if self.output_params["include_actions"]:
+            next_state.update({'act' : actions})
+
+            for n_hist in range(self.optimization_params["num_steps_in_pressure_history"]-1):
+                key = "prev_act_" + str(n_hist + 1)
+                next_state.update({key : self.history_actions[n_hist]})
+            
+            # Append last action to action history buffer
+            self.history_actions.appendleft(actions)
+
 
         if self.verbose > 2:
             print(next_state["obs"])
@@ -928,6 +1006,13 @@ class Env2DCylinder(Environment):
             avg_abs_lift = np.mean(np.absolute(self.history_parameters["lift"].get()[-avg_length:]))
             avg_drag = np.mean(self.history_parameters["drag"].get()[-avg_length:])
             return avg_drag + mean_drag_no_control - 0.2 * avg_abs_lift
+        elif self.reward_function== 'quadratic_reward_0Q':
+            avg_length = min(500, self.number_steps_execution)
+            avg_drag = np.mean(self.history_parameters["drag"].get()[-avg_length:])
+            avg_momentum=abs(self.history_parameters["jet_0"].get()[-avg_length:])
+            return -(avg_drag*avg_drag) - (3*(avg_momentum*avg_momentum)) 
+        
+
 
         # TODO: implement some reward functions that take into account how much energy / momentum we inject into the flow
 
@@ -960,11 +1045,33 @@ class Env2DCylinder(Environment):
         '''
 
         if self.output_params["probe_type"] == 'pressure':
-            states = dict(obs = dict(type='float', shape=(len(self.output_params["locations"]), )))
+            # If observations is based on difference of average top and bottom pressures
+            if (self.output_params['single_input'] == True):
+                states = dict(obs = dict(type='float', shape=(1, )))
+                
+                # Add nested dict if previous history is included in state
+                for n_hist in range(self.optimization_params["num_steps_in_pressure_history"] - 1):
+                    states.update({"prev_obs_"+ str(n_hist+1) : dict(type='float', shape=(1, ))})
             
-            # Add nested dict if previous history is included in state
-            for n_hist in range(self.optimization_params["num_steps_in_pressure_history"] - 1):
-                states.update({"prev_obs_"+ str(n_hist+1) : dict(type='float', shape=(len(self.output_params["locations"]), ))})
+            # If observations is based on raw pressure probes
+            else:
+                states = dict(obs = dict(type='float', shape=(len(self.output_params["locations"]), )))
+                
+                # Add nested dict if previous history is included in state
+                for n_hist in range(self.optimization_params["num_steps_in_pressure_history"] - 1):
+                    states.update({"prev_obs_"+ str(n_hist+1) : dict(type='float', shape=(len(self.output_params["locations"]), ))})
+
+            if self.output_params["include_actions"]:
+                if (self.output_params['single_output'] == True):
+                    shape = (1,)
+                else:
+                    shape = (2,)
+
+                states.update({"act" : dict(type='float', shape=shape)})
+
+                for n_hist in range(self.optimization_params["num_steps_in_pressure_history"] - 1):
+                    states.update({"prev_act_"+ str(n_hist+1) : dict(type='float', shape=shape)})
+
 
             return states
 
@@ -989,10 +1096,16 @@ class Env2DCylinder(Environment):
         # NOTE: we could also have several levels of dict in dict, for example:
         # return { str(i): dict(continuous=True, min_value=0, max_value=1) for i in range(self.n + 1) }
 
-        return dict(type='float',
-                    shape=(2, ),
-                    min_value=self.optimization_params["min_value_jet_MFR"],
-                    max_value=self.optimization_params["max_value_jet_MFR"])
+        if (self.output_params['single_output'] == True):
+            return dict(type='float',
+                        shape=(1, ),
+                        min_value=self.optimization_params["min_value_jet_MFR"],
+                        max_value=self.optimization_params["max_value_jet_MFR"])
+        else:
+            return dict(type='float',
+                        shape=(2, ),
+                        min_value=self.optimization_params["min_value_jet_MFR"],
+                        max_value=self.optimization_params["max_value_jet_MFR"])
 
     def max_episode_timesteps(self):
         return None

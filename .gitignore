@@ -5,6 +5,11 @@ results/
 episode_averages/
 saver_data/
 saved_models/
+best_model/
+simulation_base/mesh/
+mesh/
+script_launch_parallel_local.sh
+frequency_response/
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template
