@@ -1015,8 +1015,15 @@ class Env2DCylinder(Environment):
             avg_length = min(500, self.number_steps_execution)
             avg_drag = np.mean(self.history_parameters["drag"].get()[-avg_length:])
             avg_momentum=np.mean(abs(self.history_parameters["jet_0"].get()[-avg_length:]))
-            return -(avg_drag*avg_drag) +  (mean_drag_no_control*mean_drag_no_control)
-        
+            return -(avg_drag*avg_drag) +  (mean_drag_no_control*mean_drag_no_control) 
+        elif self.reward_function== 'quadratic_reward':
+            avg_length = min(500, self.number_steps_execution)
+            avg_drag = np.mean(self.history_parameters["drag"].get()[-avg_length:])
+            jet0_array=np.array(self.history_parameters["jet_0"].get()[-50:])
+            jet1_array=np.array(self.history_parameters["jet_1"].get()[-50:])
+            momentum_array=jet0_array+jet1_array
+            avg_momentum=np.mean(momentum_array)
+            return (10*(mean_drag_no_control+avg_drag)*(mean_drag_no_control+avg_drag)) - ((avg_momentum*avg_momentum)) 
 
 
         # TODO: implement some reward functions that take into account how much energy / momentum we inject into the flow
