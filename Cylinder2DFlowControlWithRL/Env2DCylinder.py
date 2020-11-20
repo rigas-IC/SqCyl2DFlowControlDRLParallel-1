@@ -1023,7 +1023,7 @@ class Env2DCylinder(Environment):
             jet1_array=np.array(self.history_parameters["jet_1"].get()[-50:])
             momentum_array=jet0_array+jet1_array
             avg_momentum=np.mean(momentum_array)
-            return (10*(mean_drag_no_control+avg_drag)*(mean_drag_no_control+avg_drag)) - ((avg_momentum*avg_momentum)) 
+            return ((mean_drag_no_control+avg_drag)*abs(mean_drag_no_control+avg_drag)) - ((avg_momentum*avg_momentum)) 
 
 
         # TODO: implement some reward functions that take into account how much energy / momentum we inject into the flow
