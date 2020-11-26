@@ -1010,7 +1010,8 @@ class Env2DCylinder(Environment):
             avg_length = min(500, self.number_steps_execution)
             avg_drag = np.mean(self.history_parameters["drag"].get()[-avg_length:])
             avg_momentum=np.mean(abs(self.history_parameters["jet_0"].get()[-avg_length:]))
-            return -(avg_drag*avg_drag) - (3*(avg_momentum*avg_momentum)) 
+            return ((mean_drag_no_control+avg_drag)*abs(mean_drag_no_control+avg_drag)) - ((avg_momentum*avg_momentum)) 
+        
         elif self.reward_function== 'quadratic_reward_Drag':
             avg_length = min(500, self.number_steps_execution)
             avg_drag = np.mean(self.history_parameters["drag"].get()[-avg_length:])
