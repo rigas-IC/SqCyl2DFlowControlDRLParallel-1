@@ -97,7 +97,7 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
                         "range_pressure_plot": [-2.0, 1],   # ylim for pressure dynamic plot
                         "range_drag_plot": [-0.175, -0.13],  # ylim for drag dynamic plot
                         "range_lift_plot": [-0.2, +0.2],  # ylim for lift dynamic plot
-                        "line_drag": -0.7282,  # Mean drag without control
+                        "line_drag": -0.7221,  # Mean drag without control
                         "line_lift": 0,   # Mean lift without control
                         "show_all_at_reset": False,
                         "single_run":single_run
