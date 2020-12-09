@@ -968,7 +968,7 @@ class Env2DCylinder(Environment):
         if self.verbose > 2:
             print(terminal)
 
-        reward = self.compute_reward()
+        reward = self.compute_reward(np.array(self.action))
 
         self.save_reward(reward)
 
@@ -980,7 +980,7 @@ class Env2DCylinder(Environment):
 
         return(next_state, terminal, reward)
 
-    def compute_reward(self):
+    def compute_reward(self,actionz=0):
         mean_drag_no_control = - self.inspection_params['line_drag']
 
         # NOTE: reward should be computed over the whole number of iterations in each execute loop
@@ -1011,7 +1011,6 @@ class Env2DCylinder(Environment):
             avg_drag = np.mean(self.history_parameters["drag"].get()[-avg_length:])
             avg_momentum=np.mean(abs(self.history_parameters["jet_0"].get()[-avg_length:]))
             return ((mean_drag_no_control+avg_drag)*abs(mean_drag_no_control+avg_drag)) - ((avg_momentum*avg_momentum)) 
-        
         elif self.reward_function== 'quadratic_reward_Drag':
             avg_length = min(500, self.number_steps_execution)
             avg_drag = np.mean(self.history_parameters["drag"].get()[-avg_length:])
@@ -1025,6 +1024,15 @@ class Env2DCylinder(Environment):
             momentum_array=jet0_array+jet1_array
             avg_momentum=np.mean(momentum_array)
             return ((mean_drag_no_control+avg_drag)*abs(mean_drag_no_control+avg_drag)) - ((avg_momentum*avg_momentum)) 
+        
+        elif self.reward_function== 'linear_reward':
+            avg_length = min(500, self.number_steps_execution)
+            avg_drag = np.mean(self.history_parameters["drag"].get()[-avg_length:])
+            return -abs(0.6225-abs(avg_drag)) - np.mean(actionz)  
+        elif self.reward_function== 'linear_reward_0Q':
+            avg_length = min(500, self.number_steps_execution)
+            avg_drag = np.mean(self.history_parameters["drag"].get()[-avg_length:])
+            return -abs(0.6225-abs(avg_drag)) - (np.ptp(actionz)/2.0)  
 
 
         # TODO: implement some reward functions that take into account how much energy / momentum we inject into the flow
