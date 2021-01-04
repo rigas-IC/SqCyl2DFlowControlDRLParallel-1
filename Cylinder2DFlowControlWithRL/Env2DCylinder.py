@@ -38,6 +38,7 @@ import math
 import csv
 
 import shutil
+#import scipy.signal
 
 
 # TODO: check that right types etc from tensorfoce examples
@@ -875,6 +876,9 @@ class Env2DCylinder(Environment):
 
             nbr_jets = 2
             action = np.zeros((nbr_jets, ))
+        elif ((self.output_params['single_output'] is True) and (self.output_params['symmetric'] is True)):
+            action = np.concatenate([action,action])
+        
         elif (self.output_params['single_output'] is True):
             action = np.concatenate([action,-action])
 
@@ -1034,6 +1038,18 @@ class Env2DCylinder(Environment):
             avg_drag = np.mean(self.history_parameters["drag"].get()[-avg_length:])
             return -abs(0.6225-abs(avg_drag)) - (np.ptp(actionz)/2.0)  
 
+        elif self.reward_function=='symetric':
+            jet0_array=np.array(self.history_parameters["jet_0"].get()[-(2*self.number_steps_execution):])
+            if any(x<0.0001 for x in jet0_array)==False:
+                if min(actionz)>0:
+                    print('FAIL')
+                    return -50
+            lift_array=np.array(self.history_parameters["lift"].get()[int(-7//0.004):])
+            #lift_array=scipy.signal.detrend(lift_array)
+            lift_array=lift_array-np.mean(lift_array)
+            lift_array_abs=np.absolute(lift_array)
+            print(np.mean(lift_array_abs))
+            return -np.mean(lift_array_abs)
 
         # TODO: implement some reward functions that take into account how much energy / momentum we inject into the flow
 

@@ -37,7 +37,7 @@ for crrt_simu in range(number_servers):
         timing_print=(crrt_simu == 0)     # Only print time info for env_0
     ))
 
-network = [dict(type='retrieve', tensors = ['obs','prev_obs_1','prev_obs_2','prev_obs_3']), dict(type='dense', size=512), dict(type='dense', size=512)]
+network = [dict(type='retrieve', tensors = ['obs']), dict(type='dense', size=512), dict(type='dense', size=512)]
 
 agent = Agent.create(
     # Agent + Environment
@@ -81,7 +81,7 @@ runner = Runner(
 )
 
 runner.run(
-    num_episodes=1200,
+    num_episodes=600,
     sync_episodes=True,  # Whether to synchronize parallel environment execution on episode-level
 )
 

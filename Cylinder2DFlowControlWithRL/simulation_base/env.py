@@ -35,7 +35,7 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
     simulation_duration = 50.0 #duree en secondes de la simulation #50.0 default
     dt = 0.004
     single_input = False
-    single_output = False
+    single_output = True
     include_actions = False
 
     root = 'mesh/turek_2d'  # Root of geometry file path
@@ -70,7 +70,7 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
     solver_params = {'dt': dt}
 
     # Define probes positions
-    probe_distribution = {'distribution_type': 'base',
+    probe_distribution = {'distribution_type': 'rabault241',
                           'probes_at_jets': False,  # Whether to use probes at jets or not (for distributions other than 'rabault151'
                           'n_base': 64}  # Number of probes at cylinder base if 'base' distribution is used
 
@@ -80,14 +80,15 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
                      'probe_type': 'pressure',  # Set quantity measured by probes (pressure/velocity)
                      'single_input': False, # whether to feed as input probe values or difference between average top/bottom pressures
                      'single_output': single_output, # whether policy network outputs one or two outputs
+                     'symmetric':True,
                      'include_actions': include_actions
                      }
 
-    optimization_params = {"num_steps_in_pressure_history": 4,  # Number of steps that constitute an environment state (state shape = this * len(locations))
+    optimization_params = {"num_steps_in_pressure_history": 1,  # Number of steps that constitute an environment state (state shape = this * len(locations))
                         "min_value_jet_MFR": -0.1,  # Set min and max Q* for weak actuation
                         "max_value_jet_MFR": 0.1,
                         "smooth_control": 0.1,  # parameter alpha to smooth out control
-                        "zero_net_Qs": True,  # True for Q1 + Q2 = 0
+                        "zero_net_Qs": False,  # True for Q1 + Q2 = 0
                         "random_start": random_start}
 
     inspection_params = {"plot": plot,
@@ -103,7 +104,7 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
                         "single_run":single_run
                         }
 
-    reward_function = 'drag_plain_lift'
+    reward_function = 'symetric'
 
     # Ensure that SI is True only if probes on body base, and record pressure
     output_params['single_input'] = (single_input and probe_distribution['distribution_type'] == 'base' and output_params['probe_type'] == 'pressure')
