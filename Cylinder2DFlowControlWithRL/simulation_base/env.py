@@ -19,7 +19,7 @@ import os
 cwd = os.getcwd()
 
 nb_actuations = 100 # Number of actions (NN actuations) taken per episode (Number of action intervals)
-simulation_duration = 50.0
+simulation_duration = 50
 
 def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec area) during training
                dump_vtu=100,  # If not False, create vtu files of area, velocity, pressure, every 'dump_vtu' steps
@@ -35,7 +35,7 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
     simulation_duration = 50.0 #duree en secondes de la simulation #50.0 default
     dt = 0.004
     single_input = False
-    single_output = True
+    single_output = False
     include_actions = False
 
     root = 'mesh/turek_2d'  # Root of geometry file path
@@ -80,7 +80,7 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
                      'probe_type': 'pressure',  # Set quantity measured by probes (pressure/velocity)
                      'single_input': False, # whether to feed as input probe values or difference between average top/bottom pressures
                      'single_output': single_output, # whether policy network outputs one or two outputs
-                     'symmetric':True,
+                     'symmetric':False,
                      'include_actions': include_actions
                      }
 
@@ -88,7 +88,7 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
                         "min_value_jet_MFR": -0.1,  # Set min and max Q* for weak actuation
                         "max_value_jet_MFR": 0.1,
                         "smooth_control": 0.1,  # parameter alpha to smooth out control
-                        "zero_net_Qs": False,  # True for Q1 + Q2 = 0
+                        "zero_net_Qs": True,  # True for Q1 + Q2 = 0
                         "random_start": random_start}
 
     inspection_params = {"plot": plot,
@@ -104,7 +104,7 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
                         "single_run":single_run
                         }
 
-    reward_function = 'symetric'
+    reward_function = 'dragwavereduce'
 
     # Ensure that SI is True only if probes on body base, and record pressure
     output_params['single_input'] = (single_input and probe_distribution['distribution_type'] == 'base' and output_params['probe_type'] == 'pressure')

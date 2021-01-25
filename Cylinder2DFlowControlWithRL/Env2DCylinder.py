@@ -38,7 +38,7 @@ import math
 import csv
 
 import shutil
-#import scipy.signal
+from scipy import signal
 
 
 # TODO: check that right types etc from tensorfoce examples
@@ -1050,6 +1050,22 @@ class Env2DCylinder(Environment):
             lift_array_abs=np.absolute(lift_array)
             print(np.mean(lift_array_abs))
             return -np.mean(lift_array_abs)
+        
+        elif self.reward_function=='wavereduce':
+            lift_array=np.array(self.history_parameters["lift"].get()[int(-7//0.004):])
+            #lift_array=scipy.signal.detrend(lift_array)
+            lift_array=lift_array-np.mean(lift_array)
+            lift_array_abs=np.absolute(lift_array)
+            print(np.mean(lift_array_abs))
+            return -np.mean(lift_array_abs)   
+
+        elif self.reward_function=='dragwavereduce':
+            drag_array=np.array(self.history_parameters["drag"].get()[int(-7//0.004):])
+            drag_array=signal.detrend(drag_array)
+            drag_array=drag_array-np.mean(drag_array)
+            drag_array_abs=np.absolute(drag_array)
+            print(np.mean(drag_array_abs))
+            return -np.mean(drag_array_abs)  
 
         # TODO: implement some reward functions that take into account how much energy / momentum we inject into the flow
 
