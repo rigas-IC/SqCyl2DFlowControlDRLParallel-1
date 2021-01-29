@@ -1067,7 +1067,7 @@ class Env2DCylinder(Environment):
             print(np.mean(drag_array_abs))
             return -np.mean(drag_array_abs)  
 
-        elif self.reward_function='freq':
+        elif self.reward_function=='freq':
             drag_array=np.array(self.history_parameters["drag"].get())
             b=[0.996863335697075,	-2.99059000709123,	2.99059000709123,	-0.996863335697075]
             a=[1,	-2.99371681727665,	2.98745335824285,	-0.993736510057099]
