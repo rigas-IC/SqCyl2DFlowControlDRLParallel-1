@@ -75,7 +75,7 @@ class Env2DCylinder(Environment):
     """Environment for 2D flow simulation around a cylinder."""
 
     def __init__(self, path_root, geometry_params, flow_params, solver_params, output_params,
-                 optimization_params, inspection_params, n_iter_make_ready=None, verbose=0, size_history=2000,
+                 optimization_params, inspection_params, n_iter_make_ready=None, verbose=0, size_history=8000,
                  reward_function='plain_drag', size_time_state=50, number_steps_execution=1, simu_name="Simu"):
         """
 
@@ -1066,6 +1066,19 @@ class Env2DCylinder(Environment):
             drag_array_abs=np.absolute(drag_array)
             print(np.mean(drag_array_abs))
             return -np.mean(drag_array_abs)  
+
+        elif self.reward_function='freq':
+            drag_array=np.array(self.history_parameters["drag"].get())
+            b=[0.996863335697075,	-2.99059000709123,	2.99059000709123,	-0.996863335697075]
+            a=[1,	-2.99371681727665,	2.98745335824285,	-0.993736510057099]
+            filter_drag=signal.lfilter(b,a,drag_array)
+            [peaksH,heightH]=signal.find_peaks(filter_drag,1e-5)
+            [peaksL,heightL]=signal.find_peaks(filter_drag,1e-5)
+            heightH=list(heightH.values())
+            heightL=list(heightL.values())
+            amplitude=heightH[0][-1]+hieghtL[0][-1]
+            print(amplitude)
+            return -amplitude
 
         # TODO: implement some reward functions that take into account how much energy / momentum we inject into the flow
 
