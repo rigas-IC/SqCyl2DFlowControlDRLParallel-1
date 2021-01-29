@@ -104,7 +104,7 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
                         "single_run":single_run
                         }
 
-    reward_function = 'dragwavereduce'
+    reward_function = 'freq'
 
     # Ensure that SI is True only if probes on body base, and record pressure
     output_params['single_input'] = (single_input and probe_distribution['distribution_type'] == 'base' and output_params['probe_type'] == 'pressure')

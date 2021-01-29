@@ -39,7 +39,8 @@ import csv
 
 import shutil
 from scipy import signal
-
+import peakutils
+filter_drag=0
 
 # TODO: check that right types etc from tensorfoce examples
 # typically:
@@ -653,6 +654,7 @@ class Env2DCylinder(Environment):
                                           self.history_parameters["lift"].get()[-1],
                                           self.history_parameters["jet_0"].get()[-1],
                                           self.history_parameters["jet_1"].get()[-1]])
+                                          
             else:
                 with open("saved_models/"+name, "a") as csv_file:
                     spam_writer=csv.writer(csv_file, delimiter=";", lineterminator="\n")
@@ -664,6 +666,8 @@ class Env2DCylinder(Environment):
                                           self.history_parameters["lift"].get()[-1],
                                           self.history_parameters["jet_0"].get()[-1],
                                           self.history_parameters["jet_1"].get()[-1]])
+
+                                          
 
         if("single_run" in self.inspection_params and self.inspection_params["single_run"] == True):
             # if ("dump" in self.inspection_params and self.inspection_params["dump"] > 10000):
@@ -869,6 +873,17 @@ class Env2DCylinder(Environment):
 
         if self.verbose > 1:
             print("--- Call execute ---")
+            drag_array=np.array(self.history_parameters["drag"].get())*-2
+            b=[0.996863335697075,	-2.99059000709123,	2.99059000709123,	-0.996863335697075]
+            a=[1,	-2.99371681727665,	2.98745335824285,	-0.993736510057099]
+            filter_drag=signal.lfilter(b,a,drag_array)
+            peaki=peakutils.peak.indexes(filter_drag,thres=0.002,thres_abs=True)
+            troughi=peakutils.peak.indexes(-filter_drag,thres=0.002,thres_abs=True)
+            print(max(filter_drag[6000:]),'max')
+        
+            print(filter_drag[peaki[-1]],'peak')
+            print(filter_drag[troughi[-1]],'trough')
+            
 
         if action is None:
             if self.verbose > -1:
@@ -1069,14 +1084,13 @@ class Env2DCylinder(Environment):
 
         elif self.reward_function=='freq':
             drag_array=np.array(self.history_parameters["drag"].get())
+            drag_array=drag_array*-2
             b=[0.996863335697075,	-2.99059000709123,	2.99059000709123,	-0.996863335697075]
             a=[1,	-2.99371681727665,	2.98745335824285,	-0.993736510057099]
             filter_drag=signal.lfilter(b,a,drag_array)
-            [peaksH,heightH]=signal.find_peaks(filter_drag,1e-5)
-            [peaksL,heightL]=signal.find_peaks(filter_drag,1e-5)
-            heightH=list(heightH.values())
-            heightL=list(heightL.values())
-            amplitude=heightH[0][-1]+hieghtL[0][-1]
+            peaki=peakutils.peak.indexes(filter_drag,thres=0.003,thres_abs=True)
+            troughi=peakutils.peak.indexes(-filter_drag,thres=0.003,thres_abs=True)
+            amplitude=np.absolute(filter_drag[peaki[-1]])+np.absolute(filter_drag[troughi[-1]])
             print(amplitude)
             return -amplitude
 
