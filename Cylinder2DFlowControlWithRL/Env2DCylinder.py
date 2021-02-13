@@ -771,7 +771,7 @@ class Env2DCylinder(Environment):
                             shutil.rmtree("best_model")
                         shutil.copytree("saved_models", "best_model")
 
-        if "dump_vtu" in self.inspection_params and self.inspection_params["dump_vtu"] < 10000 and self.solver_step % self.inspection_params["dump_vtu"] == 0:
+        if self.inspection_params["dump_vtu"]==True and self.inspection_params["dump_vtu"] < 10000 and self.solver_step % self.inspection_params["dump_vtu"] == 0:
 
             if not self.initialized_vtu:  # Initialize results .pvd output if not done already
                 self.u_out = File('results/u_out.pvd')
