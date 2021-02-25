@@ -37,7 +37,7 @@ for crrt_simu in range(number_servers):
         timing_print=(crrt_simu == 0)     # Only print time info for env_0
     ))
 
-network = [dict(type='retrieve', tensors = ['obs']), dict(type='rnn', size=512, horizon=7,cell='gru'), dict(type='rnn', size=512,horizon=7,cell='gru')]
+network = [dict(type='retrieve', tensors = ['obs']), dict(type='rnn', size=512, horizon=20,cell='gru'), dict(type='rnn', size=512,horizon=20,cell='gru')]
 
 agent = Agent.create(
     # Agent + Environment
@@ -60,7 +60,7 @@ agent = Agent.create(
     baseline=network,  # Critic NN specification
     baseline_optimizer=dict(
         type='multi_step', num_steps=5,
-        optimizer=dict(type='adam', learning_rate=1e-3)
+        optimizer=dict(type='adam', learning_rate=1e-3,gradient_norm_clipping=1)
     ),
     # Regularization
     entropy_regularization=0.01,  # To discourage policy from being too 'certain'
@@ -81,7 +81,7 @@ runner = Runner(
 )
 
 runner.run(
-    num_episodes=1280,
+    num_episodes=2560,
     sync_episodes=True,  # Whether to synchronize parallel environment execution on episode-level
 )
 
