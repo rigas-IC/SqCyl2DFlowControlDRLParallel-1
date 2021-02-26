@@ -60,7 +60,7 @@ agent = Agent.create(
     baseline=network,  # Critic NN specification
     baseline_optimizer=dict(
         type='multi_step', num_steps=5,
-        optimizer=dict(type='adam', learning_rate=1e-3,gradient_norm_clipping=1)
+        optimizer=dict(type='adam', learning_rate=1e-3,clipnorm=1.0)
     ),
     # Regularization
     entropy_regularization=0.01,  # To discourage policy from being too 'certain'
