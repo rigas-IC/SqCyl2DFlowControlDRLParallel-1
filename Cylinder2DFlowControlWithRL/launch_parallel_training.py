@@ -53,14 +53,14 @@ agent = Agent.create(
     subsampling_fraction=0.2,  # Fraction of batch timesteps to subsample
     multi_step=25,
     # Reward estimation
-    likelihood_ratio_clipping=0.2, # The epsilon of the ppo CLI objective
+    likelihood_ratio_clipping=0.075, # The epsilon of the ppo CLI objective
     predict_terminal_values=True,  # Whether to estimate the value of terminal states
     # TODO: gae_lambda=0.97 doesn't currently exist
     # Critic
     baseline=network,  # Critic NN specification
     baseline_optimizer=dict(
         type='multi_step', num_steps=5,
-        optimizer=dict(type='adam', learning_rate=1e-3,clipnorm=1.0)
+        optimizer=dict(type='adam', learning_rate=1e-3)
     ),
     # Regularization
     entropy_regularization=0.01,  # To discourage policy from being too 'certain'
