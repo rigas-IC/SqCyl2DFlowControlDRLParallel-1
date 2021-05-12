@@ -78,7 +78,7 @@ def resume_env(plot=False,  # To plot results (Field, controls, lift, drag, rec 
 
     output_params = {'locations': list_position_probes,  # List of (x,y) np arrays with probe positions
                      'probe_type': 'pressure',  # Set quantity measured by probes (pressure/velocity)
-                     'single_input': False, # whether to feed as input probe values or difference between average top/bottom pressures
+                     'single_input': single_input, # whether to feed as input probe values or difference between average top/bottom pressures
                      'single_output': single_output, # whether policy network outputs one or two outputs
                      'symmetric':False,
                      'include_actions': include_actions
