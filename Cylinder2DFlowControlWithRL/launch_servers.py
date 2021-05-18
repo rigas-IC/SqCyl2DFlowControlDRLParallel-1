@@ -57,7 +57,7 @@ processes = []
 # launch all the servers one after the other
 for rank, port in enumerate(list_ports):
     print("launching process of rank {}".format(rank))
-    proc = Process(target=launch_one_server, args=(rank, host, port))  # Spawn child launch_one_server process
+    proc = Process(target=launch_one_server, args=(rank, 'localhost', port))  # Spawn child launch_one_server process
     proc.start()  # start the process
     processes.append(proc)
     time.sleep(2.0)  # just to avoid collisions in the terminal printing
