@@ -871,19 +871,6 @@ class Env2DCylinder(Environment):
         '''
         action = actions
 
-        if self.verbose > 1:
-            print("--- Call execute ---")
-            drag_array=np.array(self.history_parameters["drag"].get())*-2
-            b=[0.996863335697075,	-2.99059000709123,	2.99059000709123,	-0.996863335697075]
-            a=[1,	-2.99371681727665,	2.98745335824285,	-0.993736510057099]
-            filter_drag=signal.lfilter(b,a,drag_array)
-            peaki=peakutils.peak.indexes(filter_drag,thres=0.002,thres_abs=True)
-            troughi=peakutils.peak.indexes(-filter_drag,thres=0.002,thres_abs=True)
-            print(max(filter_drag[6000:]),'max')
-        
-            print(filter_drag[peaki[-1]],'peak')
-            print(filter_drag[troughi[-1]],'trough')
-            
 
         if action is None:
             if self.verbose > -1:

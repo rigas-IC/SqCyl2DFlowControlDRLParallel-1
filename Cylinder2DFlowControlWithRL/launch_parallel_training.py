@@ -11,7 +11,7 @@ from tensorforce.execution import Runner
 from simulation_base.env import resume_env, nb_actuations
 from RemoteEnvironmentClient import RemoteEnvironmentClient
 
-
+print("START1")
 ap = argparse.ArgumentParser()
 ap.add_argument("-n", "--number-servers", required=True, help="number of servers to spawn", type=int)
 ap.add_argument("-p", "--ports-start", required=True, help="the start of the range of ports to use", type=int)
@@ -25,19 +25,19 @@ host = args["host"]
 
 if host == 'None':
     host = socket.gethostname()
-
+print("START2")
 example_environment = resume_env(plot=False, dump_CL=100, dump_debug=1, dump_vtu=50)
-
+print("START3")
 use_best_model = True
-
+print("START3")
 environments = []
 for crrt_simu in range(number_servers):
     environments.append(RemoteEnvironmentClient(
-        example_environment, verbose=0, port=ports_start + crrt_simu, host=host,
+        example_environment, verbose=2, port=ports_start + crrt_simu, host=host,
         timing_print=(crrt_simu == 0)     # Only print time info for env_0
     ))
-
-network = [dict(type='retrieve', tensors = ['obs']), dict(type='rnn', size=512, horizon=20,cell='gru'), dict(type='rnn', size=512,horizon=20,cell='gru')]
+print("START4")
+network = [dict(type='retrieve', tensors = ['obs']), dict(type='rnn', size=512, horizon=20,cell='gru')]
 
 agent = Agent.create(
     # Agent + Environment
