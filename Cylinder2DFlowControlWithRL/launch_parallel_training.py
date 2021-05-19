@@ -33,7 +33,7 @@ print("START3")
 environments = []
 for crrt_simu in range(number_servers):
     environments.append(RemoteEnvironmentClient(
-        example_environment, verbose=2, port=ports_start + crrt_simu, host=host,
+        example_environment, verbose=0, port=ports_start + crrt_simu, host=host,
         timing_print=(crrt_simu == 0)     # Only print time info for env_0
     ))
 print("START4")
