@@ -307,7 +307,7 @@ class Env2DCylinder(Environment):
                 self.write_history_parameters()  # Add new step data to history buffers
                 self.visual_inspection()  # Create dynamic plots, show step data in command line and save it to saved_models/debug.csv
                 self.output_data()  # Extend arrays of episode qtys, generate vtu files for area, u and p
-
+                
                 self.solver_step += 1
 
             encoding = XDMFFile.Encoding.HDF5
@@ -771,13 +771,15 @@ class Env2DCylinder(Environment):
                             shutil.rmtree("best_model")
                         shutil.copytree("saved_models", "best_model")
 
-        if self.inspection_params["dump_vtu"]==True and self.inspection_params["dump_vtu"] < 10000 and self.solver_step % self.inspection_params["dump_vtu"] == 0:
+        if self.inspection_params["dump_vtu"]==False:
+            pass
+        elif self.inspection_params["dump_vtu"] < 10000 and self.solver_step % self.inspection_params["dump_vtu"] == 0:
 
             if not self.initialized_vtu:  # Initialize results .pvd output if not done already
                 self.u_out = File('results/u_out.pvd')
                 self.p_out = File('results/p_out.pvd')
                 self.initialized_vtu = True
-
+            
             # Generate vtu files for area, drag and lift
             if(not self.area_probe is None):
                 self.area_probe.dump(self.area_probe)
